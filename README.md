@@ -1,10 +1,10 @@
-# Very short description of the package
+# Medikey Authentication
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/rs/auth-medikey.svg?style=flat-square)](https://packagist.org/packages/rs/auth-medikey)
 [![Total Downloads](https://img.shields.io/packagist/dt/rs/auth-medikey.svg?style=flat-square)](https://packagist.org/packages/rs/auth-medikey)
 ![GitHub Actions](https://github.com/rs/auth-medikey/actions/workflows/main.yml/badge.svg)
 
-This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what PSRs you support to avoid any confusion with users and contributors.
+Medikey is the innovative service that allows the certification and the recognition of the Italian physicians: a single initial process of registration allows the physician to obtain two univocal access keys (username and password) through which one can automatically access all the reserved websites that have adhered to Medikey, avoiding new, long and repetitive registrations for each website.
 
 ## Installation
 
