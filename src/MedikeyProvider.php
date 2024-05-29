@@ -2,11 +2,16 @@
 
 namespace RedSnapper\Medikey;
 
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use RedSnapper\Medikey\Exceptions\InvalidSessionTicketException;
 use RedSnapper\Medikey\Exceptions\InvalidTicketException;
+use RedSnapper\Medikey\Exceptions\MissingTicketInResponseException;
+use RedSnapper\Medikey\Exceptions\TicketMismatchException;
 use RedSnapper\Medikey\Exceptions\MedikeyException;
+use RedSnapper\Medikey\Exceptions\TicketNotFoundInSessionException;
 use SimpleXMLElement;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -29,50 +34,78 @@ class MedikeyProvider
         $this->site_id = $site_id;
     }
 
+    /**
+     * @throws MedikeyException
+     * @throws RequestException
+     * @throws MissingTicketInResponseException
+     * @throws InvalidTicketException
+     */
     public function redirect(): RedirectResponse
     {
         $ticket = $this->getTicket();
 
         $query = http_build_query(['id' => $this->site_id, 't' => $ticket]);
 
-        $this->request->session()->put('state',$ticket);
+        $this->request->session()->put('state', $ticket);
 
         return new RedirectResponse(self::BASE_URL."/login_process.aspx?".$query);
     }
 
+    /**
+     * @throws MedikeyException
+     * @throws RequestException
+     * @throws TicketNotFoundInSessionException
+     * @throws InvalidSessionTicketException
+     */
     public function user(): MedikeyUser
     {
         if (isset($this->user)) {
             return $this->user;
         }
 
-        if ($this->hasInvalidTicket()) {
-            throw new InvalidTicketException;
-        }
+        $this->validateTicketFromMedikeyMatchesSessionValue();
 
         $this->user = $this->getUserByTicket($this->request->get('t'));
 
         return $this->user;
     }
 
+    /**
+     * @throws RequestException
+     * @throws MissingTicketInResponseException
+     * @throws MedikeyException
+     * @throws InvalidTicketException
+     */
     protected function getTicket(): string
     {
         $response = Http::get(self::BASE_URL."/ticket.aspx", [
-          'id' => $this->site_id
+            'id' => $this->site_id,
         ]);
 
         $response->throw();
 
-        $xml = simplexml_load_string($response->body(), \SimpleXMLElement::class, LIBXML_NOCDATA);
+        $xml = $this->toXml($response);
+        if (!isset($xml->ticket_numero)) {
+            throw new MissingTicketInResponseException();
+        }
 
-        return $xml->ticket_numero;
+        $ticket = (string)$xml->ticket_numero;
+        if (!$this->ticketIsValid($ticket)) {
+            throw new InvalidTicketException($ticket, $this->site_id);
+        }
+
+        return $ticket;
     }
 
+    /**
+     * @throws MedikeyException
+     * @throws RequestException
+     */
     private function getUserByTicket($ticket): MedikeyUser
     {
         $response = Http::get(self::BASE_URL."/profilo.aspx", [
-          'id' => $this->site_id,
-          't' => $ticket
+            'id' => $this->site_id,
+            't'  => $ticket,
         ]);
 
         $response->throw();
@@ -82,6 +115,9 @@ class MedikeyProvider
         return new MedikeyUser($data);
     }
 
+    /**
+     * @throws MedikeyException
+     */
     private function toXml(Response $response): SimpleXMLElement
     {
         $xml = simplexml_load_string($response->body(), \SimpleXMLElement::class, LIBXML_NOCDATA);
@@ -91,19 +127,36 @@ class MedikeyProvider
         return $xml;
     }
 
-    private function validateResponse(SimpleXMLElement $element)
+    private function validateResponse(SimpleXMLElement $element): void
     {
-        if($element->errore_id != 0){
-
-            throw new MedikeyException($element->errore_descrizione,(int) $element->errore_id);
+        if ($element->errore_id != 0) {
+            throw new MedikeyException($element->errore_descrizione, (int)$element->errore_id);
         }
     }
 
-    private function hasInvalidTicket():bool
+    /**
+     * @throws TicketNotFoundInSessionException
+     * @throws InvalidSessionTicketException
+     * @throws TicketMismatchException
+     */
+    private function validateTicketFromMedikeyMatchesSessionValue(): void
     {
         $ticket = $this->request->session()->pull('state');
+        if (is_null($ticket)) {
+            throw new TicketNotFoundInSessionException();
+        }
 
-        return ! (strlen($ticket) > 0 && $this->request->input('t') === $ticket);
+        if (!$this->ticketIsValid($ticket)) {
+            throw new InvalidSessionTicketException($ticket);
+        }
+
+        if ($this->request->input('t') !== $ticket) {
+            throw new TicketMismatchException($ticket, $this->request->input('t'));
+        }
     }
 
+    private function ticketIsValid(string $ticket): bool
+    {
+        return strlen($ticket) > 0 && $ticket != 0;
+    }
 }
