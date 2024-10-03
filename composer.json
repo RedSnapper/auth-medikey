@@ -17,8 +17,8 @@
     ],
     "require": {
         "php": "^8.0",
-        "illuminate/support": "^10.0",
-        "illuminate/http": "^10.0",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0",
         "ext-libxml": "*",
         "ext-simplexml": "*",
         "ext-json": "*"
