@@ -41,7 +41,15 @@ class MedikeyProviderTest extends TestCase
     {
         Http::fake([
             '/profilo*' => Http::response(
-                ArrayToXml::convert(['utente_id' => 23, 'nome' => 'John', 'cognome' => 'Doe'], 'profilo')
+                ArrayToXml::convert(
+                    [
+                        'utente_id' => 23,
+                        'nome' => 'John',
+                        'cognome' => 'Doe',
+                        'specializzazione' => ['specialita' => [1, 2, 3]],
+                    ],
+                    'profilo'
+                )
             ),
         ]);
 
@@ -53,6 +61,7 @@ class MedikeyProviderTest extends TestCase
         $this->assertEquals('Doe', $user->getLastName());
         $this->assertEquals('John', $user->getFirstName());
         $this->assertEquals('John Doe', $user->getName());
+        $this->assertEquals([1, 2, 3], $user->getSpecialties());
 
         Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
             return $request->url() === MedikeyProvider::BASE_URL."/profilo.aspx?id=123&t=456";

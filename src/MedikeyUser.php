@@ -36,12 +36,17 @@ class MedikeyUser
         return $this->getFirstName()." ".$this->getLastName();
     }
 
+    public function getSpecialties(): array
+    {
+        return Arr::get($this->data, 'specializzazione.specialita', []);
+    }
+
     /**
      * Get the raw user array.
      *
      * @return array
      */
-    public function getRaw():array
+    public function getRaw(): array
     {
         return $this->data;
     }
