@@ -4,6 +4,8 @@ namespace RedSnapper\Medikey\Tests;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use RedSnapper\Medikey\Exceptions\InvalidSessionTicketException;
 use RedSnapper\Medikey\Exceptions\InvalidTicketException;
 use RedSnapper\Medikey\Exceptions\MissingTicketInResponseException;
@@ -15,7 +17,7 @@ use Spatie\ArrayToXml\ArrayToXml;
 
 class MedikeyProviderTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function can_be_redirected_to_provider()
     {
         Http::fake([
@@ -36,7 +38,7 @@ class MedikeyProviderTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function can_fetch_user()
     {
         Http::fake([
@@ -68,7 +70,7 @@ class MedikeyProviderTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function fetching_user_throws_an_exception_when_there_is_an_error()
     {
         Http::fake([
@@ -84,7 +86,7 @@ class MedikeyProviderTest extends TestCase
         $provider->user();
     }
 
-    /** @test */
+    #[Test]
     public function fetching_user_throws_an_exception_when_there_is_a_ticket_mismatch()
     {
         Http::fake([
@@ -100,7 +102,7 @@ class MedikeyProviderTest extends TestCase
     }
 
 
-    /** @test */
+    #[Test]
     public function redirect_throws_an_exception_when_get_ticket_response_returns_an_error_code()
     {
         Http::fake([
@@ -117,7 +119,7 @@ class MedikeyProviderTest extends TestCase
         $provider->redirect();
     }
 
-    /** @test */
+    #[Test]
     public function redirect_throws_an_exception_when_ticket_number_key_is_not_present_in_response()
     {
         Http::fake([
@@ -140,10 +142,8 @@ class MedikeyProviderTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     * @dataProvider invalidTicketNumbers
-     */
+    #[DataProvider('invalidTicketNumbers')]
+    #[Test]
     public function redirect_throws_an_exception_when_medikey_fails_to_provide_a_valid_ticket_number(mixed $ticketNum)
     {
         Http::fake([
@@ -158,7 +158,7 @@ class MedikeyProviderTest extends TestCase
         $provider->redirect();
     }
 
-    /** @test */
+    #[Test]
     public function fetching_user_throws_an_exception_when_ticket_number_is_not_in_session()
     {
         $provider = new MedikeyProvider($this->setRequestWithSession(['t' => 456]), '123');
@@ -168,10 +168,8 @@ class MedikeyProviderTest extends TestCase
         $provider->user();
     }
 
-    /**
-     * @test
-     * @dataProvider invalidTicketNumbers
-     */
+    #[DataProvider('invalidTicketNumbers')]
+    #[Test]
     public function fetching_user_throws_an_exception_when_session_ticket_number_is_invalid(mixed $ticketNum)
     {
         $provider = new MedikeyProvider($this->setRequestWithSession(['t' => 456], ['state' => $ticketNum]), '123');
